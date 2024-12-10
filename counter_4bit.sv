@@ -1,7 +1,3 @@
-// This counter is designed using register, adder and a multiplexer. 
-// Normally we don't use this appraoch as this requires more hardware there a simple counter 
-// that adds constant value "1'b1".
-
 module counter_4bit#(
 )(
     input logic clk,
@@ -11,17 +7,53 @@ module counter_4bit#(
     output logic [3:0] count
 );
 
-    logic [3:0] next_count;//it was 1 bit 
-    //                            1            0
-    assign next_count = load ? (count + 1) : (load_data);
+        logic dff0_data_i;
+        logic dff1_data_i;
+        logic dff2_data_i;
+        logic dff3_data_i;
 
 
-    always @(posedge clk, negedge reset_n)
-    begin 
-        if(!reset_n)// it didint ave negitive 
-            count <= 4'b0000;
-        else 
-            count <= next_count;
-    end
+        // Next count logic 
+        logic [3:0] next_count;
+        assign next_count[0] = ~count[0];
+        assign next_count[1] = count[0] ^ count[1];
+        assign next_count[2] = (count[0] & count[1]) ^ count[2];
+        assign next_count[3] = (count[0] & count[1] & count[2])  ^ count[3];
+
+        // do count plus one or load a value to counter
+        mux2x1 mux_inst0(.S(load), .in1(next_count[0]), .in2(load_data[0]), .out(dff0_data_i));
+        mux2x1 mux_inst1(.S(load), .in1(next_count[1]), .in2(load_data[1]), .out(dff1_data_i));
+        mux2x1 mux_inst2(.S(load), .in1(next_count[2]), .in2(load_data[2]), .out(dff2_data_i));
+        mux2x1 mux_inst3(.S(load), .in1(next_count[3]), .in2(load_data[3]), .out(dff3_data_i));
+
+
+        // D flip flops
+        d_flipflop dff0(
+            .clk(clk),
+            .D(dff0_data_i),
+            .reset_n(reset_n),
+            .Q(count[0])
+            );
+
+        d_flipflop dff1(
+            .clk(clk),
+            .D(dff1_data_i),
+            .reset_n(reset_n),
+            .Q(count[1])
+            );
+
+        d_flipflop dff2(
+            .clk(clk),
+            .D(dff2_data_i),
+            .reset_n(reset_n),
+            .Q(count[2])
+            );
+
+        d_flipflop dff3(
+            .clk(clk),
+            .D(dff3_data_i),
+            .reset_n(reset_n),
+            .Q(count[3])
+            );
 
 endmodule
